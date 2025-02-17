@@ -1,13 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <title>Our simple HTTP server</title>
   <link rel="stylesheet" type="text/css" href="/style.css">
-  
-  <script>
 
+  <script>
+    const handleResponse = async (response, method) => {
+      const content = document.querySelector('#content');
+
+      switch (response.status) {
+        case 200:
+          content.innerHTML = `<b>Success</b>`;
+          break;
+        case 201:
+          content.innerHTML = '<b>Created</b>';
+          break;
+        case 204:
+          content.innerHTML = '<b>Updated (No Content)</b>';
+          break;
+        case 400:
+          content.innerHTML = `<b>Bad Request</b>`;
+          break;
+        default:
+          content.innerHTML = `<b>Not Found</b>`;
+          break;
+      }
+
+      if (method !== 'head') {
+        const obj = await response.json();
+        console.log(obj);
+
+        if (obj.message) {
+          content.innerHTML += `<p>${obj.message}</p>`;
+        } else {
+          content.innerHTML += `<p>${JSON.stringify(obj.users)}</p>`;
+        }
+      }
+    };
+
+    const sendPost = async (nameForm) => {
+      const url = nameForm.getAttribute('action');
+      const method = nameForm.getAttribute('method');
+
+      const nameField = nameForm.querySelector('#nameField');
+      const ageField = nameForm.querySelector('#ageField');
+
+      const formData = `name=${nameField.value}&age=${ageField.value}`;
+
+      let response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      handleResponse(response, method);
+    };
+
+    const sendGetHead = async (userForm) => {
+      const urlSelector = userForm.querySelector('#urlField');
+      const methodSelector = userForm.querySelector('#methodSelect');
+
+      let url = urlSelector.options[urlSelector.selectedIndex].value;
+      let method = methodSelector.options[methodSelector.selectedIndex].value;
+
+      let response = await fetch(url, {
+        method: method,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      handleResponse(response, method);
+    }
+
+    const init = () => {
+      const nameForm = document.querySelector('#nameForm');
+      const userForm = document.querySelector('#userForm');
+
+      const addUser = (e) => {
+        e.preventDefault();
+        sendPost(nameForm);
+        return false;
+      }
+
+      const checkUsers = (e) => {
+        e.preventDefault();
+        sendGetHead(userForm);
+        return false;
+      }
+
+      nameForm.addEventListener('submit', addUser);
+      userForm.addEventListener('submit', checkUsers);
+    };
+
+    window.onload = init;
   </script>
 </head>
+
 <body>
   <section id="top">
     <h3>POST Status Code Tests</h3>
@@ -15,7 +108,7 @@
       <label for="name">Name: </label>
       <input id="nameField" type="text" name="name" />
       <label for="age">Age: </label>
-      <input id="ageField" type="number" name="age" min="0" max="100" step="1"/>
+      <input id="ageField" type="number" name="age" min="0" max="123" step="1" />
       <input type="submit" value="Add User" />
     </form>
     <form id="userForm" action="/getUsers" method="get">
@@ -27,10 +120,11 @@
         <option value="get">GET</option>
         <option value="head">HEAD</option>
       </select>
-      <input type="submit" value="Get User" />
+      <input type="submit" value="Get Users" />
     </form>
   </section>
   <section id="content">
   </section>
 </body>
+
 </html>
